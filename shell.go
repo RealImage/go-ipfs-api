@@ -500,7 +500,7 @@ func (s *Shell) BlockStat(path string) (string, int, error) {
 	return inf.Key, inf.Size, nil
 }
 
-func (s *Shell) BlockPut(r io.Reader) (string, error) {
+func (s *Shell) PutBlock(r io.Reader) (string, error) {
 	var rc io.ReadCloser
 	if rclose, ok := r.(io.ReadCloser); ok {
 		rc = rclose
