@@ -500,7 +500,7 @@ func (s *Shell) BlockStat(path string) (string, int, error) {
 	return inf.Key, inf.Size, nil
 }
 
-func (s *Shell) BlockPut(r io.Reader) (string, int, error) {
+func (s *Shell) BlockPut(r io.Reader) (string, error) {
 	var rc io.ReadCloser
 	if rclose, ok := r.(io.ReadCloser); ok {
 		rc = rclose
@@ -518,11 +518,11 @@ func (s *Shell) BlockPut(r io.Reader) (string, int, error) {
 
 	resp, err := req.Send(s.httpcli)
 	if err != nil {
-		return "", 0, err
+		return "", err
 	}
 	defer resp.Close()
 	if resp.Error != nil {
-		return "", 0, resp.Error
+		return "", resp.Error
 	}
 
 	var inf struct {
@@ -532,8 +532,8 @@ func (s *Shell) BlockPut(r io.Reader) (string, int, error) {
 
 	err = json.NewDecoder(resp.Output).Decode(&inf)
 	if err != nil {
-		return "", 0, err
+		return "", err
 	}
 
-	return inf.Key, inf.Size, nil
+	return inf.Key, nil
 }
