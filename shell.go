@@ -570,3 +570,41 @@ func (s *Shell) PutBlock(r io.Reader) (string, error) {
 
 	return inf.Key, nil
 }
+
+func (s *Shell) PutObject(r io.Reader) (string, error) {
+	var rc io.ReadCloser
+	if rclose, ok := r.(io.ReadCloser); ok {
+		rc = rclose
+	} else {
+		rc = ioutil.NopCloser(r)
+	}
+
+	// handler expects an array of files
+	fr := files.NewReaderFile("", "", rc, nil)
+	slf := files.NewSliceFile("", "", []files.File{fr})
+	fileReader := files.NewMultiFileReader(slf, true)
+
+	req := NewRequest(s.url, "object/put")
+	req.Opts["inputenc"] = "protobuf"
+	req.Body = fileReader
+
+	resp, err := req.Send(s.httpcli)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Close()
+	if resp.Error != nil {
+		return "", resp.Error
+	}
+
+	var inf struct {
+		Hash string
+	}
+
+	err = json.NewDecoder(resp.Output).Decode(&inf)
+	if err != nil {
+		return "", err
+	}
+
+	return inf.Hash, nil
+}
