@@ -3,6 +3,7 @@ package shell
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +20,11 @@ import (
 type Shell struct {
 	url     string
 	httpcli *gohttp.Client
+}
+
+type ObjStat struct {
+	BlockSize uint64 `json:"BlockSize"`
+	DataSize  uint64 `json:"DataSize"`
 }
 
 func NewShell(url string) *Shell {
@@ -607,4 +613,45 @@ func (s *Shell) PutObject(r io.Reader) (string, error) {
 	}
 
 	return inf.Hash, nil
+}
+
+func (s *Shell) ObjectStat(path string) (*ObjStat, error) {
+	resp, err := s.newRequest("object/stat", path).Send(s.httpcli)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Close()
+
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	var objStat ObjStat
+
+	err = json.NewDecoder(resp.Output).Decode(&objStat)
+	if err != nil {
+		return nil, err
+	}
+
+	return &objStat, err
+}
+
+func (s *Shell) ObjectGet(path string) ([]byte, error) {
+	req := s.newRequest("object/get", path)
+	req.Opts["encoding"] = "protobuf"
+	resp, err := req.Send(s.httpcli)
+
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Close()
+
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Output)
+
+	return buf.Bytes(), err
 }
